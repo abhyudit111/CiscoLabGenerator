@@ -22,6 +22,7 @@
 
 ### Phase 1: Core AI Pipeline & Setup (Days 1–7) — ✅ COMPLETED
 - [x] **Repo & Environment Setup**: Python 3.14 configured with `streamlit`, `google-genai`, `python-dotenv`, `pydantic`.
+- [x] **Model Integration**: Configured to use **Gemini 3.8 Flash** (`gemini-3.8-flash`) as the target LLM.
 - [x] **Project Structure**:
   - `app.py`: Streamlit frontend.
   - `ai_generator.py`: Prompt, LLM caller, schema validation, sample loader, text exporter.

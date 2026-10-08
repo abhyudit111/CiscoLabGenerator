@@ -206,7 +206,7 @@ def generate_lab_with_llm(
     lab_type: str,
     user_prompt: str = "",
     api_key: Optional[str] = None,
-    model_name: str = "gemini-2.5-flash"
+    model_name: str = "gemini-3.8-flash"
 ) -> Dict[str, Any]:
     """Call Google Gemini API using google-genai to generate a structured lab blueprint."""
     key = api_key or os.getenv("GEMINI_API_KEY")

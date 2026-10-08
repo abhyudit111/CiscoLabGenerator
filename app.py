@@ -77,9 +77,9 @@ with st.sidebar:
     
     selected_model = st.selectbox(
         "Model",
-        ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"],
+        ["gemini-3.8-flash"],
         index=0,
-        help="Select Gemini model for lab generation."
+        help="Google Gemini model for lab generation (Gemini 3.8 Flash)."
     )
 
     st.markdown("---")

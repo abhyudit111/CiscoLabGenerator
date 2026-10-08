@@ -1,0 +1,49 @@
+{
+  "title": "VLAN Segmentation Lab",
+  "lab_type": "vlan",
+  "objective": "Configure VLAN 10 (Faculty) and VLAN 20 (Students) on a Cisco Catalyst 2960 switch, assign access ports, and demonstrate network isolation between different broadcast domains.",
+  "devices": [
+    {"id": "SW1", "type": "switch", "model": "2960"},
+    {"id": "PC1", "type": "pc", "model": "Generic PC"},
+    {"id": "PC2", "type": "pc", "model": "Generic PC"},
+    {"id": "PC3", "type": "pc", "model": "Generic PC"},
+    {"id": "PC4", "type": "pc", "model": "Generic PC"}
+  ],
+  "links": [
+    {"from": "PC1", "from_port": "FastEthernet0", "to": "SW1", "to_port": "FastEthernet0/1"},
+    {"from": "PC2", "from_port": "FastEthernet0", "to": "SW1", "to_port": "FastEthernet0/2"},
+    {"from": "PC3", "from_port": "FastEthernet0", "to": "SW1", "to_port": "FastEthernet0/3"},
+    {"from": "PC4", "from_port": "FastEthernet0", "to": "SW1", "to_port": "FastEthernet0/4"}
+  ],
+  "addressing": [
+    {"device": "PC1", "interface": "FastEthernet0", "ip": "192.168.10.10", "mask": "255.255.255.0", "gateway": ""},
+    {"device": "PC2", "interface": "FastEthernet0", "ip": "192.168.20.10", "mask": "255.255.255.0", "gateway": ""},
+    {"device": "PC3", "interface": "FastEthernet0", "ip": "192.168.10.20", "mask": "255.255.255.0", "gateway": ""},
+    {"device": "PC4", "interface": "FastEthernet0", "ip": "192.168.20.20", "mask": "255.255.255.0", "gateway": ""}
+  ],
+  "configurations": {
+    "SW1": "enable\nconfigure terminal\nhostname SW1\n\nvlan 10\n name Faculty\nexit\n\nvlan 20\n name Students\nexit\n\ninterface FastEthernet0/1\n description Connected to PC1 (Faculty)\n switchport mode access\n switchport access vlan 10\n no shutdown\nexit\n\ninterface FastEthernet0/2\n description Connected to PC2 (Students)\n switchport mode access\n switchport access vlan 20\n no shutdown\nexit\n\ninterface FastEthernet0/3\n description Connected to PC3 (Faculty)\n switchport mode access\n switchport access vlan 10\n no shutdown\nexit\n\ninterface FastEthernet0/4\n description Connected to PC4 (Students)\n switchport mode access\n switchport access vlan 20\n no shutdown\nexit\n\nend\nwrite memory"
+  },
+  "instructions": [
+    "Open Cisco Packet Tracer and create a new workspace.",
+    "Place one Cisco Catalyst 2960 switch (SW1) and four generic PCs (PC1, PC2, PC3, PC4).",
+    "Connect the PCs to SW1 using Copper Straight-Through cables:",
+    "  - PC1 FastEthernet0 -> SW1 FastEthernet0/1 (VLAN 10)",
+    "  - PC2 FastEthernet0 -> SW1 FastEthernet0/2 (VLAN 20)",
+    "  - PC3 FastEthernet0 -> SW1 FastEthernet0/3 (VLAN 10)",
+    "  - PC4 FastEthernet0 -> SW1 FastEthernet0/4 (VLAN 20)",
+    "Configure static IP addresses on all PCs (Desktop -> IP Configuration):",
+    "  - PC1: IP 192.168.10.10, Mask 255.255.255.0 (VLAN 10)",
+    "  - PC2: IP 192.168.20.10, Mask 255.255.255.0 (VLAN 20)",
+    "  - PC3: IP 192.168.10.20, Mask 255.255.255.0 (VLAN 10)",
+    "  - PC4: IP 192.168.20.20, Mask 255.255.255.0 (VLAN 20)",
+    "Click SW1 -> CLI, press Enter, and paste the SW1 configuration commands.",
+    "Verify that the switch ports are configured in their respective VLANs."
+  ],
+  "verification": [
+    "On SW1 CLI, run 'show vlan brief' to verify VLAN 10 contains Fa0/1, Fa0/3 and VLAN 20 contains Fa0/2, Fa0/4.",
+    "Test Intra-VLAN connectivity (VLAN 10): From PC1, ping PC3 at 192.168.10.20. Expected: Success (4 replies).",
+    "Test Intra-VLAN connectivity (VLAN 20): From PC2, ping PC4 at 192.168.20.20. Expected: Success (4 replies).",
+    "Test Inter-VLAN isolation (VLAN 10 to VLAN 20): From PC1, ping PC2 at 192.168.20.10. Expected: Request timed out (100% loss) because VLANs are isolated Layer 2 broadcast domains without a router."
+  ]
+}

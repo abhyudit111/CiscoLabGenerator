@@ -1,0 +1,57 @@
+{
+  "title": "Static Routing Across Two Subnets Lab",
+  "lab_type": "static_routing",
+  "objective": "Connect two distinct local area networks via two Cisco routers (R1 and R2), configure static IPv4 routes, and verify end-to-end communication across routers.",
+  "devices": [
+    {"id": "R1", "type": "router", "model": "2911"},
+    {"id": "R2", "type": "router", "model": "2911"},
+    {"id": "SW1", "type": "switch", "model": "2960"},
+    {"id": "SW2", "type": "switch", "model": "2960"},
+    {"id": "PC1", "type": "pc", "model": "Generic PC"},
+    {"id": "PC2", "type": "pc", "model": "Generic PC"},
+    {"id": "PC3", "type": "pc", "model": "Generic PC"},
+    {"id": "PC4", "type": "pc", "model": "Generic PC"}
+  ],
+  "links": [
+    {"from": "PC1", "from_port": "FastEthernet0", "to": "SW1", "to_port": "FastEthernet0/1"},
+    {"from": "PC2", "from_port": "FastEthernet0", "to": "SW1", "to_port": "FastEthernet0/2"},
+    {"from": "SW1", "from_port": "GigabitEthernet0/1", "to": "R1", "to_port": "GigabitEthernet0/0"},
+    {"from": "R1", "from_port": "GigabitEthernet0/1", "to": "R2", "to_port": "GigabitEthernet0/1"},
+    {"from": "R2", "from_port": "GigabitEthernet0/0", "to": "SW2", "to_port": "GigabitEthernet0/1"},
+    {"from": "PC3", "from_port": "FastEthernet0", "to": "SW2", "to_port": "FastEthernet0/1"},
+    {"from": "PC4", "from_port": "FastEthernet0", "to": "SW2", "to_port": "FastEthernet0/2"}
+  ],
+  "addressing": [
+    {"device": "PC1", "interface": "FastEthernet0", "ip": "192.168.1.10", "mask": "255.255.255.0", "gateway": "192.168.1.1"},
+    {"device": "PC2", "interface": "FastEthernet0", "ip": "192.168.1.20", "mask": "255.255.255.0", "gateway": "192.168.1.1"},
+    {"device": "R1", "interface": "GigabitEthernet0/0", "ip": "192.168.1.1", "mask": "255.255.255.0", "gateway": ""},
+    {"device": "R1", "interface": "GigabitEthernet0/1", "ip": "10.0.0.1", "mask": "255.255.255.252", "gateway": ""},
+    {"device": "R2", "interface": "GigabitEthernet0/1", "ip": "10.0.0.2", "mask": "255.255.255.252", "gateway": ""},
+    {"device": "R2", "interface": "GigabitEthernet0/0", "ip": "192.168.2.1", "mask": "255.255.255.0", "gateway": ""},
+    {"device": "PC3", "interface": "FastEthernet0", "ip": "192.168.2.10", "mask": "255.255.255.0", "gateway": "192.168.2.1"},
+    {"device": "PC4", "interface": "FastEthernet0", "ip": "192.168.2.20", "mask": "255.255.255.0", "gateway": "192.168.2.1"}
+  ],
+  "configurations": {
+    "R1": "enable\nconfigure terminal\nhostname R1\n\ninterface GigabitEthernet0/0\n description LAN 1 Gateway\n ip address 192.168.1.1 255.255.255.0\n no shutdown\nexit\n\ninterface GigabitEthernet0/1\n description WAN link to R2\n ip address 10.0.0.1 255.255.255.252\n no shutdown\nexit\n\nip route 192.168.2.0 255.255.255.0 10.0.0.2\n\nend\nwrite memory",
+    "R2": "enable\nconfigure terminal\nhostname R2\n\ninterface GigabitEthernet0/0\n description LAN 2 Gateway\n ip address 192.168.2.1 255.255.255.0\n no shutdown\nexit\n\ninterface GigabitEthernet0/1\n description WAN link to R1\n ip address 10.0.0.2 255.255.255.252\n no shutdown\nexit\n\nip route 192.168.1.0 255.255.255.0 10.0.0.1\n\nend\nwrite memory",
+    "SW1": "enable\nconfigure terminal\nhostname SW1\n! Layer 2 switch forwarding traffic for LAN 1 on default VLAN 1\nend\nwrite memory",
+    "SW2": "enable\nconfigure terminal\nhostname SW2\n! Layer 2 switch forwarding traffic for LAN 2 on default VLAN 1\nend\nwrite memory"
+  },
+  "instructions": [
+    "Place two Cisco 2911 Routers (R1, R2), two Cisco 2960 Switches (SW1, SW2), and four PCs (PC1, PC2 in LAN 1, PC3, PC4 in LAN 2).",
+    "Connect LAN 1: PC1 (Fa0) -> SW1 (Fa0/1), PC2 (Fa0) -> SW1 (Fa0/2), SW1 (Gi0/1) -> R1 (Gi0/0) using Straight-Through cables.",
+    "Connect WAN Link: R1 (Gi0/1) -> R2 (Gi0/1) using a Crossover or Straight-Through cable.",
+    "Connect LAN 2: R2 (Gi0/0) -> SW2 (Gi0/1), SW2 (Fa0/1) -> PC3 (Fa0), SW2 (Fa0/2) -> PC4 (Fa0).",
+    "Configure PC IP addresses, subnet masks, and Default Gateways as specified in the addressing table.",
+    "Open R1 CLI, answer 'no' to initial configuration dialog if prompted, and paste R1 commands.",
+    "Open R2 CLI, answer 'no' to initial configuration dialog if prompted, and paste R2 commands.",
+    "Ensure both router interfaces turn green (no shutdown applied)."
+  ],
+  "verification": [
+    "From PC1 Command Prompt, ping the local gateway: 'ping 192.168.1.1' (Expected: Success).",
+    "On R1 CLI, ping R2 WAN interface: 'ping 10.0.0.2' (Expected: 5/5 exclamation marks '!!!!!').",
+    "On R1 CLI, view routing table: 'show ip route' (Expected: 'S 192.168.2.0/24 [1/0] via 10.0.0.2').",
+    "On R2 CLI, view routing table: 'show ip route' (Expected: 'S 192.168.1.0/24 [1/0] via 10.0.0.1').",
+    "From PC1 Command Prompt, ping remote PC3: 'ping 192.168.2.10' (Expected: Success, first packet may time out during ARP resolution, subsequent packets reply)."
+  ]
+}

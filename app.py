@@ -1,12 +1,14 @@
 """app.py: Streamlit Web UI for Cisco Packet Tracer LLM Lab Generator."""
 
 import os
+import html
 import streamlit as st
 import pandas as pd
 from dotenv import load_dotenv
 
 import ai_generator
 import diagram
+import pkt_generator
 
 # Page configuration
 st.set_page_config(
@@ -48,15 +50,37 @@ st.markdown("""
     .stCodeBlock {
         border-radius: 6px;
     }
+    .pkt-info-box {
+        background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
+        border: 1px solid #0284c7;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: #0c4a6e;
+    }
 </style>
 """, unsafe_allow_html=True)
+
+
+@st.cache_data(show_spinner=False, max_entries=16)
+def cached_pkt_bytes(lab):
+    return pkt_generator.generate_pkt_bytes(lab)
+
+
+def accept_lab(lab):
+    ai_generator.require_valid_lab(lab)
+    for key in list(st.session_state):
+        if key.startswith("verif_check_"):
+            del st.session_state[key]
+    st.session_state.current_lab = lab
 
 
 # Initialize session state for generated lab
 if "current_lab" not in st.session_state:
     # Load basic LAN as initial default
     try:
-        st.session_state.current_lab = ai_generator.load_sample_lab("basic_lan")
+        accept_lab(ai_generator.load_sample_lab("basic_lan"))
     except Exception:
         st.session_state.current_lab = None
 
@@ -75,45 +99,59 @@ with st.sidebar:
         help="Enter your Google Gemini API key or add GEMINI_API_KEY to your .env file."
     )
     
-    selected_model = st.selectbox(
-        "Model",
-        ["gemini-3.8-flash"],
-        index=0,
-        help="Google Gemini model for lab generation (Gemini 3.8 Flash)."
+    selected_model = st.text_input(
+        "Gemini model ID",
+        value=os.getenv("GEMINI_MODEL", ""),
+        placeholder="Enter a model ID available to your account",
+        help="Use a model ID available to your Gemini account; you can configure GEMINI_MODEL in .env."
     )
+    offline_mode = st.checkbox("Use offline generation", value=not bool(env_api_key.strip()))
+    st.caption("Offline: LAN chains/rings; 1 router with up to 3 LANs; 2 routers with 2 LANs; single-switch VLANs.")
 
     st.markdown("---")
-    st.markdown("### 📂 Pre-tested Reference Labs")
+    st.markdown("### 📂 Reference Labs")
     st.caption("Quickly test reference blueprints without using API quota:")
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Basic LAN", use_container_width=True):
-            st.session_state.current_lab = ai_generator.load_sample_lab("basic_lan")
+        if st.button("Basic LAN", width="stretch"):
+            accept_lab(ai_generator.load_sample_lab("basic_lan"))
             st.success("Loaded Basic LAN reference lab!")
             st.rerun()
             
-        if st.button("Static Routing", use_container_width=True):
-            st.session_state.current_lab = ai_generator.load_sample_lab("static_routing")
+        if st.button("Static Routing", width="stretch"):
+            accept_lab(ai_generator.load_sample_lab("static_routing"))
             st.success("Loaded Static Routing reference lab!")
             st.rerun()
 
     with col2:
-        if st.button("VLAN Lab", use_container_width=True):
-            st.session_state.current_lab = ai_generator.load_sample_lab("vlan")
+        if st.button("VLAN Lab", width="stretch"):
+            accept_lab(ai_generator.load_sample_lab("vlan"))
             st.success("Loaded VLAN reference lab!")
             st.rerun()
+
+    st.markdown("---")
+
+    # PKT file info in sidebar
+    st.markdown("### 📦 Packet Tracer Export")
+    st.info(
+        "**Download .pkt File**\n\n"
+        "Once a lab is generated, use the **📦 Download .pkt** button "
+        "to get a ready-to-open Cisco Packet Tracer file with all devices, "
+        "cables, and configurations pre-loaded.\n\n"
+        "_Verify interfaces, VLANs, routes, and connectivity in Packet Tracer._"
+    )
 
     st.markdown("---")
     st.markdown("### ℹ️ About Project")
     st.info(
         "**Cisco Packet Tracer Lab Generator**\n\n"
-        "Generates verified topology plans, IP schemes, Cisco IOS CLI commands, "
+        "Generates topology plans with consistency checks, IP schemes, Cisco IOS CLI commands, "
         "and manual testing instructions for Packet Tracer.\n\n"
         "**Supported Lab Types:**\n"
-        "- Basic LAN (1 Switch, 3-4 PCs)\n"
-        "- VLANs (1 Switch, 4 PCs, VLAN 10/20)\n"
-        "- Static Routing (2 Routers, 2 Switches, 4 PCs)"
+        "- LANs with switch chains or rings\n"
+        "- Two isolated VLANs on one switch\n"
+        "- One or two routers with static addressing"
     )
 
 
@@ -132,57 +170,54 @@ with st.container(border=True):
             options=[
                 ("basic_lan", "1. Basic LAN (Single Subnet, Switch + PCs)"),
                 ("vlan", "2. VLAN Segmentation (Access Ports, Isolated Subnets)"),
-                ("static_routing", "3. Static Routing (Dual Routers, Multi-LAN)")
+                ("static_routing", "3. Static Routing (Dual Routers, Multi-LAN)"),
+                ("custom", "4. Custom Topology / Multi-LAN (Synthesized from Prompt)")
             ],
             format_func=lambda x: x[1]
         )
     
     user_prompt = st.text_area(
         "Custom Instructions / Requirements (Optional)",
-        placeholder="e.g., 'Use subnet 192.168.10.0/24 with 3 workstations' or 'Name VLANs HR and Finance'.",
-        help="Leave empty to use standardized educational defaults."
+        placeholder="e.g. Use subnet 192.168.10.0/24 with 3 workstations'.",
+        help="Specify number of PCs, switches, routers, and IP subnets. The engine will tailor the lab to your requirements."
     )
     
     col_submit, col_space = st.columns([2, 5])
     with col_submit:
-        generate_clicked = st.button("🚀 Generate Lab", type="primary", use_container_width=True)
+        generate_clicked = st.button("🚀 Generate Lab", type="primary", width="stretch")
 
 if generate_clicked:
-    lab_key = lab_category[0]
-    api_key_to_use = user_api_key.strip() or env_api_key.strip()
-    
-    if not api_key_to_use:
-        st.warning(
-            "⚠️ No Gemini API key provided. Loading pre-tested reference template for this category instead. "
-            "To generate with live LLM, enter your Gemini API key in the sidebar."
-        )
-        try:
-            st.session_state.current_lab = ai_generator.load_sample_lab(lab_key)
-            st.rerun()
-        except Exception as e:
-            st.error(f"Error loading sample lab: {e}")
-    else:
-        with st.spinner("🤖 Communicating with LLM and validating lab network specification..."):
-            try:
+    try:
+        with st.spinner("Generating and checking the lab blueprint..."):
+            key = "" if offline_mode else user_api_key.strip()
+            if key:
                 new_lab = ai_generator.generate_lab_with_llm(
-                    lab_type=lab_key,
-                    user_prompt=user_prompt,
-                    api_key=api_key_to_use,
-                    model_name=selected_model
+                    lab_type=lab_category[0], user_prompt=user_prompt.strip(),
+                    api_key=key, model_name=selected_model.strip(),
                 )
-                st.session_state.current_lab = new_lab
-                st.success("✅ Lab generated and verified successfully!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Generation Failed: {str(e)}")
-                st.info("Tip: You can load the reference sample lab from the sidebar anytime.")
+            else:
+                new_lab = ai_generator.synthesize_lab_from_prompt(user_prompt.strip(), lab_category[0])
+            accept_lab(new_lab)
+        st.rerun()
+    except Exception as exc:
+        st.error(f"Generation failed: {exc}")
+        st.info("The previous lab remains below. Simplify the request or adjust the generation settings.")
 
 
 # Display Generated Lab
 current_lab = st.session_state.current_lab
 
 if current_lab:
+    valid, validation_errors = ai_generator.validate_lab_data(current_lab)
+    if not valid:
+        st.error("This lab failed blueprint validation: " + "; ".join(validation_errors))
+        st.stop()
     st.divider()
+    generation = current_lab.get("generation", {})
+    source = {"gemini": "Google Gemini", "offline": "Offline engine", "reference": "Reference sample"}.get(generation.get("source"), "Unknown")
+    st.caption(f"Generation source: {source} | Blueprint consistency checks passed. Verify operation in Packet Tracer.")
+    if generation.get("fallback_reason"):
+        st.warning(f"Using {source.lower()} because {generation['fallback_reason']}")
     
     # Title & Objective Header
     badge_class = {
@@ -191,25 +226,65 @@ if current_lab:
         "static_routing": "badge-routing"
     }.get(current_lab.get("lab_type", ""), "badge-lan")
     
-    col_title, col_download = st.columns([4, 1.2])
+    # ---------------------------------------------------------------
+    # Header row: title + download buttons
+    # ---------------------------------------------------------------
+    col_title, col_dl_txt, col_dl_pkt = st.columns([4, 1, 1])
     with col_title:
         st.markdown(
-            f'### <span class="badge {badge_class}">{current_lab.get("lab_type", "").replace("_", " ")}</span> '
-            f'{current_lab.get("title", "Untitled Lab")}',
+            f'### <span class="badge {badge_class}">{html.escape(current_lab.get("lab_type", "").replace("_", " "))}</span> '
+            f'{html.escape(current_lab.get("title", "Untitled Lab"))}',
             unsafe_allow_html=True
         )
         st.markdown(f"**Objective:** {current_lab.get('objective', 'No objective provided.')}")
         
-    with col_download:
+    # Generate clean descriptive filenames from lab title
+    raw_title = current_lab.get("title", current_lab.get("lab_type", "lab"))
+    safe_title = "_".join(w.lower() for w in raw_title.split() if w.isalnum()) or "lab"
+    clean_filename = f"{safe_title}_guide.txt"
+    pkt_filename = f"{safe_title}.pkt"
+
+    with col_dl_txt:
         lab_text_content = ai_generator.export_lab_to_text(current_lab)
-        clean_filename = f"{current_lab.get('lab_type', 'lab')}_guide.txt"
         st.download_button(
-            label="📥 Download Guide (.txt)",
+            label="📥 Guide (.txt)",
             data=lab_text_content,
             file_name=clean_filename,
             mime="text/plain",
-            use_container_width=True
+            width="stretch",
+            help="Download the complete lab guide as a plain-text file."
         )
+
+    with col_dl_pkt:
+        # Generate .pkt bytes
+        try:
+            pkt_bytes = cached_pkt_bytes(current_lab)
+            st.download_button(
+                label="📦 Open in PT (.pkt)",
+                data=pkt_bytes,
+                file_name=pkt_filename,
+                mime="application/octet-stream",
+                width="stretch",
+                type="primary",
+                help=(
+                    "Download a Cisco Packet Tracer (.pkt) file with all devices, "
+                    "cables, and configurations pre-loaded. Open directly in Packet Tracer."
+                )
+            )
+        except Exception as pkt_err:
+            st.error(f"PKT generation error: {pkt_err}")
+
+    # PKT info callout
+    st.markdown(
+        '<div class="pkt-info-box">'
+        '📦 <strong>New:</strong> Download the <strong>.pkt file</strong> above to open this lab directly in '
+        'Cisco Packet Tracer — devices, cables, IP addresses, and Cisco CLI configurations are all '
+        'included. Check the saved configuration and run the verification steps in Packet Tracer.'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write("")
 
     # Tabs for organized view
     tab_topo, tab_tables, tab_cli, tab_steps = st.tabs([
@@ -225,7 +300,7 @@ if current_lab:
         st.caption("Auto-generated Graphviz schematic showing device models and interconnected interface ports:")
         try:
             dot_source = diagram.generate_topology_dot(current_lab)
-            st.graphviz_chart(dot_source, use_container_width=True)
+            st.graphviz_chart(dot_source, width="stretch")
         except Exception as e:
             st.warning(f"Could not render diagram: {e}")
 
@@ -245,7 +320,7 @@ if current_lab:
                         "Target Port": l.get("to_port")
                     } for l in links
                 ])
-                st.dataframe(links_df, hide_index=True, use_container_width=True)
+                st.dataframe(links_df, hide_index=True, width="stretch")
             else:
                 st.info("No cabling links defined.")
 
@@ -262,7 +337,7 @@ if current_lab:
                         "Default Gateway": a.get("gateway") or "N/A"
                     } for a in addressing
                 ])
-                st.dataframe(addr_df, hide_index=True, use_container_width=True)
+                st.dataframe(addr_df, hide_index=True, width="stretch")
             else:
                 st.info("No addressing entries defined.")
 

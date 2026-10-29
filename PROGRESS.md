@@ -1,5 +1,7 @@
 # Project Progress Tracker
 
+> **October 28, 2026 refinement:** The earlier milestone entries below are historical. Generation now uses shared blueprint validation, bounded offline topology support, actual generation-source reporting, and regression tests. Gemini model IDs are configurable rather than hard-coded. Manual Packet Tracer verification remains outstanding; automated consistency checks do not establish simulation success. See README.md for the current supported scope and test commands. Log diagnosis and RAG from the original professor proposal remain future work.
+
 **Project:** LLM-Based Cisco Packet Tracer Lab Generator  
 **Course:** Computer Networks (Semester 3)  
 **Last Updated:** October 8, 2026  

@@ -1,0 +1,51 @@
+Field                                               Details
+Title 26        LLM-Based Intelligent Cisco Packet Tracer Lab Generator for Automated
+                Networking Education
+Problem         Designing Cisco Packet Tracer laboratory exercises is time-consuming and requires
+Statement       instructors to create network topologies manually, assign IP addresses, configure
+                routing protocols, develop troubleshooting scenarios, and prepare assessment materials.
+                Existing educational tools provide limited automation and require significant instructor
+                effort to create diverse, curriculum-aligned labs. This research proposes an LLM-based
+                Packet Tracer Lab Generator that automatically generates complete networking
+                laboratories from natural language prompts, including network topology, device
+                configurations, IP addressing, routing protocols, VLANs, ACLs, firewall rules, QoS
+                settings, and assessment questions. The proposed system aims to reduce instructor
+                workload while providing personalized, scalable, and interactive networking education.
+AI Model        Large Language Models (LLMs) • GPT-based LLMs • Llama 3 • Qwen • Mistral •
+                Retrieval-Augmented Generation (RAG) • LangChain/LangGraph (Optional for
+                workflow orchestration)
+Possible Inputs • Course name (CCNA, CCNP, Computer Networks, etc.) • Topic (Routing, Switching,
+                VLAN, OSPF, BGP, IPv6, ACL, NAT, QoS, Wireless, etc.) • Learning objectives •
+                Difficulty level (Beginner/Intermediate/Advanced) • Number of routers, switches, PCs,
+                and servers • Network size • IP addressing requirements • Routing protocol selection •
+                Security requirements • Assessment objectives • Time duration of lab
+Novel           • Develop an LLM-powered Packet Tracer Lab Generator that automatically creates
+Contributions complete networking laboratories from natural language instructions. • Generate
+                network topologies, device configurations, IPv4/IPv6 addressing, routing
+                protocols, VLANs, ACLs, NAT, QoS, and wireless network configurations. •
+                Automatically generate student instructions, expected outputs, troubleshooting
+                tasks, quiz questions, and grading rubrics. • Support multiple networking curricula
+                (CCNA, CCNP, university courses, and certification training). • Evaluate the
+                educational effectiveness of AI-generated labs compared with manually created
+                laboratories.
+Dataset         • Cisco Networking Academy Packet Tracer sample labs (where licensing permits) •
+                Public GitHub repositories containing Packet Tracer exercises • Network configuration
+                repositories (Cisco IOS examples) • RFC documents and networking textbooks for
+                knowledge retrieval • Custom dataset of instructor-created Packet Tracer labs collected
+                from university networking courses.
+Research Gap Existing networking education platforms primarily provide static laboratory exercises
+                that require manual creation and updating by instructors. Current LLM applications in
+                education focus mainly on text generation or tutoring rather than automated
+                laboratory generation. There is limited research on using LLMs with networking
+                domain knowledge to generate complete, executable Packet Tracer laboratories,
+                including topology design, configurations, troubleshooting exercises, and assessment
+                materials tailored to learning outcomes.
+Novelty         Proposes an LLM-based intelligent networking education platform that
+                automatically converts natural language learning requirements into complete Cisco
+                Packet Tracer laboratory exercises. Unlike conventional educational tools, the
+                proposed framework generates network topologies, device configurations,
+                assessment questions, troubleshooting scenarios, and grading rubrics with minimal
+                instructor intervention. The novelty can be further enhanced by integrating multi-agent
+                AI, Retrieval-Augmented Generation (RAG), automatic Packet Tracer (.pkt) file
+                generation, adaptive difficulty adjustment, student performance analytics, or
+                digital twin-based lab validation.
